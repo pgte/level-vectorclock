@@ -36,12 +36,18 @@ VC.put = function put(key, value, meta, cb) {
   }
 
   if (! meta) meta = {};
-  vectorclock.increment(meta, this._node);
+  if (! meta.clock) meta.clock = {};
+  vectorclock.increment(meta.clock, this._node);
   var subKey = calcSubKey(meta, this._seed);
   this._db.batch([
       { key: composeKeys(key, subKey, 'k'), value: value, type: PUT },
       { key: composeKeys(key, subKey, 'm'), value: JSON.stringify(meta), type: PUT }
-    ], cb);
+    ], onBatch);
+
+  function onBatch(err) {
+    if (err) cb(err);
+    else cb(null, meta);
+  }
 };
 
 

@@ -1,6 +1,7 @@
-var test = require('tap').test;
-var utils = require('./utils');
-var LVC = require('../');
+var assert = require('assert');
+var test   = require('tap').test;
+var utils  = require('./utils');
+var LVC    = require('../');
 
 var path = __dirname + '/.testdbs/putandget'
 var db = utils.setup(path, 'node1');
@@ -14,7 +15,7 @@ test('puts one', function(t) {
 
 test('gets one', function(t) {
   db.get('key1', function(err, recs) {
-    var expected = [{key: 'key1', value: 'value1', meta: {node1: 1}}];
+    var expected = [{key: 'key1', value: 'value1', meta: { clock: { node1: 1}}}];
     t.deepEqual(recs, expected);
     t.end();
   });
@@ -41,13 +42,37 @@ test('produces sibilings', function(t) {
     db.get('key2', function(err, recs) {
       if (err) throw err;
       var expected = [
-        {key: 'key2', value: 'value2', meta: {node1: 1}},
-        {key: 'key2', value: 'value3', meta: {node1: 1}}
+        {key: 'key2', value: 'value2', meta: {clock: {node1: 1}}},
+        {key: 'key2', value: 'value3', meta: {clock: {node1: 1}}}
       ];
 
       t.deepEqual(recs.sort(sort), expected);
       t.end();
     });
+  }
+});
+
+test('solves descendants', function(t) {
+  db.put('key3', 'value4', onPut);
+
+  function onPut(err, meta) {
+    if (err) throw err;
+    assert(meta);
+
+    db.put('key3', 'value5', meta, onPut2);
+  }
+
+  function onPut2(err, meta) {
+    if (err) throw err;
+
+    db.get('key3', onGet);
+  }
+
+  function onGet(err, recs) {
+    if (err) throw err;
+    var expected = [{key: 'key3', value: 'value5', meta: { clock: {'node1': 2 }}}];
+    t.deepEqual(recs, expected);
+    t.end();
   }
 });
 

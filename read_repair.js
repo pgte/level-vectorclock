@@ -5,23 +5,32 @@ module.exports = repair;
 function repair(responses) {
   var repaired = [];
   var discarded = [];
-  if (responses.length) repaired.push(responses.shift());
+  var lastMeta, r;
+
+  if (responses.length) {
+    r = responses.shift()
+    repaired.push(r);
+    lastMeta = r.meta;
+  }
   if (responses.length) {
     responses.sort(sort);
     responses.forEach(function(response) {
-      if (vectorClock.isConcurrent(response, repaired[0]) &&
-          ! vectorClock.isIdentical(response, repaired[0])) {
+      if (mustKeep(response.meta, lastMeta)) {
         repaired.push(response);
-      } else {
-        discarded.push(response);
-      }
+        lastMeta = response.meta;
+      } else discarded.push(response);
+
     });
   }
 
-  var ret = { repaired: repaired, discarded: discarded }
-  return ret;
+  var instructions = { repaired: repaired, discarded: discarded };
+  return instructions;
 }
 
-function sort(resA, resB) {
-  return vectorClock.descSort(resA.meta, resB.meta);
+function sort(a, b) {
+  return vectorClock.descSort(a.meta, b.meta);
+}
+
+function mustKeep(a, b) {
+  return vectorClock.isConcurrent(a, b);
 }
