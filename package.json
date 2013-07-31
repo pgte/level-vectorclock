@@ -1,0 +1,29 @@
+{
+  "name": "level-vectorclock",
+  "version": "0.0.1",
+  "description": "Vector Clocks in LevelDB",
+  "main": "index.js",
+  "scripts": {
+    "test": "tap tests/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/pgte/level-vectorclock.git"
+  },
+  "author": "pgte",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pgte/level-vectorclock/issues"
+  },
+  "dependencies": {
+    "vectorclock": "~0.0.0",
+    "xxhash":      "~0.2.0"
+  },
+  "devDependencies": {
+    "tap":    "*",
+    "level":  "*",
+    "rimraf": "*",
+    "mkdirp": "*",
+    "level":  "*"
+  }
+}
