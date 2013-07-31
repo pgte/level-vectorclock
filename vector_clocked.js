@@ -1,5 +1,6 @@
 var EventEmitter = require('events').EventEmitter;
 var inherits     = require('util').inherits;
+var PassThrough  = require('stream').PassThrough;
 var vectorclock  = require('vectorclock');
 var hash         = require('xxhash').hash;
 var readRepair   = require('./read_repair');
@@ -104,6 +105,75 @@ function repair(changes, cb) {
   }
 }
 
+
+/// createReadStream
+
+VC.createReadStream = function createReadStream(options) {
+  var reply = new PassThrough({objectMode: true});
+
+  var s = this._db.createReadStream(options);
+
+
+  s.on('data', onData);
+  s.on('end',  onEnd);
+
+  var reads = [];
+  var currentKey;
+  var currentSet;
+  var meta, value;
+
+  function onData(d) {
+    var key = extractKey(d.key);
+    var set = extractSet(d.key, key);
+
+    if (currentSet && set != currentSet && meta && value != undefined) {
+      reads.push({key: currentKey, value: value, meta: meta});
+      value = null;
+      meta = null;
+    }
+
+    if (set != currentSet) currentSet = set;
+
+    if (currentKey && key != currentKey)
+      dispatch();
+
+    if (key != currentKey) currentKey = key;
+
+    if (isMetaKey(d.key)) {
+      try {
+        meta = JSON.parse(d.value);
+      } catch(err) {
+        reply.emit('error', err);
+      }
+    } else {
+      value = d.value;
+    }
+
+  }
+
+  function dispatch() {
+    if (reads.length) {
+      var instructions = readRepair(reads);
+      reply.push(instructions.repaired);
+      repair.call(this, instructions, defaultCallback.bind(this));
+    }
+  }
+
+  function onEnd() {
+    if (currentKey && meta && value != undefined) {
+      reads.push({key: currentKey, value: value, meta: meta});
+    }
+    dispatch();
+    reply.push();
+  }
+
+  function defaultCallback(err) {
+    if (err) reply.emit('error', err);
+  }
+
+  return reply;
+};
+
 /// close
 
 VC.close = function close(cb) {
@@ -118,4 +188,16 @@ function calcSubKey(meta, seed) {
 
 function composeKeys(keyA, prefix, keyB) {
   return keyA + SEPARATOR + prefix + SEPARATOR + keyB;
+}
+
+function extractKey(fullKey) {
+  return fullKey.substring(0, fullKey.indexOf(SEPARATOR));
+}
+
+function extractSet(fullKey, key) {
+  return fullKey.substring(key.length + 1, fullKey.lastIndexOf(SEPARATOR));
+}
+
+function isMetaKey(fullKey) {
+  return fullKey.substring(fullKey.lastIndexOf(SEPARATOR) + 1) == 'm';
 }
