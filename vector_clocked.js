@@ -1,5 +1,6 @@
 var EventEmitter = require('events').EventEmitter;
 var inherits     = require('util').inherits;
+var extend       = require('util')._extend;
 var PassThrough  = require('stream').PassThrough;
 var vectorclock  = require('vectorclock');
 var hash         = require('xxhash').hash;
@@ -106,11 +107,28 @@ function repair(changes, cb) {
 
 /// createReadStream
 
+var defaultReadStreamOptions = {
+  keys:   true,
+  values: true
+}
+
 VC.createReadStream = function createReadStream(options) {
   var reply = new PassThrough({objectMode: true});
 
-  var s = this._db.createReadStream(options);
+  var opts = extend({}, defaultReadStreamOptions);
+  opts = extend(opts, options);
 
+  var mapper;
+  var keysOnly   = ! opts.values && opts.keys;
+  var valuesOnly = opts.values && ! opts.keys;
+  if (valuesOnly)    mapper = valueMapper;
+  else if (keysOnly) mapper = keyMapper;
+
+  delete opts.keys;
+  delete opts.values;
+
+  console.log('read stream opts:', opts);
+  var s = this._db.createReadStream(opts);
 
   s.on('data', onData);
   s.on('end',  onEnd);
@@ -149,7 +167,7 @@ VC.createReadStream = function createReadStream(options) {
   function dispatch() {
     if (reads.length) {
       var instructions = readRepair(reads);
-      reply.push(instructions.repaired);
+      pushOut(instructions.repaired);
       repair.call(this, instructions, defaultCallback.bind(this));
     }
   }
@@ -164,6 +182,12 @@ VC.createReadStream = function createReadStream(options) {
 
   function defaultCallback(err) {
     if (err) reply.emit('error', err);
+  }
+
+  function pushOut(out) {
+    if (mapper) out = out.map(mapper);
+    if (keysOnly) out = out[0];
+    if (out) reply.push(out);
   }
 
   return reply;
@@ -195,4 +219,12 @@ function extractSet(fullKey, key) {
 
 function isMetaKey(fullKey) {
   return fullKey.substring(fullKey.lastIndexOf(SEPARATOR) + 1) == 'm';
+}
+
+function valueMapper(rec) {
+  return {value: rec.value, meta: rec.meta};
+}
+
+function keyMapper(rec) {
+  return rec.key;
 }

@@ -111,6 +111,41 @@ test('gets a partial read stream with a partial key', function(t) {
   }
 });
 
+test('gets only keys', function(t) {
+  var s = db.createReadStream({values: false});
+  s.on('data', onData);
+
+  var datas = 1;
+  function onData(d) {
+    var padded = pad(datas);
+    var expected = 'key' + padded;
+
+    t.deepEqual(d, expected);
+    if (++ datas > MAX_DATA) t.end();
+  }
+});
+
+test('gets only values', function(t) {
+  var s = db.createReadStream({keys: false});
+  s.on('data', onData);
+
+  var datas = 1;
+  function onData(d) {
+    var padded = pad(datas);
+    var expected = {
+      value: 'value' + padded,
+      meta: {
+        clock: {
+          node1: 1
+        }
+      }
+    };
+
+    t.deepEqual(d, [expected]);
+    if (++ datas > MAX_DATA) t.end();
+  }
+});
+
 test('closes', function(t) {
   db.close(t.end.bind(t));
 });
