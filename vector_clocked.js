@@ -124,7 +124,7 @@ VC.createReadStream = function createReadStream(options) {
     var key = extractKey(d.key);
     var set = extractSet(d.key, key);
 
-    if (currentSet && set != currentSet && meta) {
+    if (set != currentSet && meta) {
       reads.push({key: currentKey, value: value, meta: meta});
       value = null;
       meta = null;
@@ -132,8 +132,7 @@ VC.createReadStream = function createReadStream(options) {
 
     if (set != currentSet) currentSet = set;
 
-    if (currentKey && key != currentKey)
-      dispatch();
+    if (currentKey && key != currentKey) dispatch();
 
     if (key != currentKey) currentKey = key;
 
@@ -143,9 +142,7 @@ VC.createReadStream = function createReadStream(options) {
       } catch(err) {
         reply.emit('error', err);
       }
-    } else {
-      value = d.value;
-    }
+    } else value = d.value;
 
   }
 
