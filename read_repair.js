@@ -7,13 +7,13 @@ function repair(responses) {
   var discarded = [];
   var lastMeta, r;
 
+  responses.sort(sort);
   if (responses.length) {
     r = responses.shift()
     repaired.push(r);
     lastMeta = r.meta;
   }
   if (responses.length) {
-    responses.sort(sort);
     responses.forEach(function(response) {
       if (mustKeep(response.meta, lastMeta)) {
         repaired.push(response);
