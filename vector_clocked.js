@@ -37,10 +37,18 @@ VC.put = function put(key, value, meta, cb) {
     meta = undefined;
   }
 
+  if (Array.isArray(meta)) {
+    meta = meta.reduce(reduceMetas, {clock: {}});
+  }
+  console.log('reduced metas:', meta);
+
   if (! meta) meta = {};
   if (! meta.clock) meta.clock = {};
-  vectorclock.increment(meta.clock, this._node);
+
+  vectorclock.increment(meta, this._node);
+
   var subKey = calcSubKey(meta, this._seed);
+
   this._db.batch([
       { key: composeKeys(key, subKey, 'k'), value: value, type: PUT },
       { key: composeKeys(key, subKey, 'm'), value: JSON.stringify(meta), type: PUT }
@@ -52,6 +60,9 @@ VC.put = function put(key, value, meta, cb) {
   }
 };
 
+function reduceMetas(prev, curr) {
+  return vectorclock.merge(prev, curr);
+}
 
 /// get
 

@@ -76,6 +76,52 @@ test('solves descendants', function(t) {
   }
 });
 
+test('user read repair', function(t) {
+  db.put('key4', 'value6', onPut);
+  db.put('key4', 'value7', onPut);
+
+  var puts = 0;
+  function onPut(err) {
+    if (err) throw err;
+    if (++ puts == 2) next();
+  }
+
+  function next() {
+    db.get('key4', onGet);
+  }
+
+  function onGet(err, values) {
+    if (err) throw err;
+    t.equal(values.length, 2);
+    var metas = values.map(function(value) { return value.meta } );
+    db.put('key4', 'value8', metas, onPut2);
+  }
+
+  function onPut2(err, meta) {
+    if (err) throw err;
+    t.deepEqual(meta, {clock: {node1: 2}});
+    db.get('key4', onGet2);
+  }
+
+  function onGet2(err, values) {
+    if (err) throw err;
+    t.equal(values.length, 1);
+    expectedValue = {
+      key: 'key4',
+      value: 'value8',
+      meta: {
+        clock: {
+          node1: 2
+        }
+      }
+    };
+
+    t.deepEqual(values, [expectedValue]);
+    t.end();
+  }
+
+});
+
 
 test('closes', function(t) {
   db.close(t.end.bind(t));
