@@ -48,7 +48,7 @@ VC.put = function put(key, value, meta, cb) {
 
   function onBatch(err) {
     if (err) cb(err);
-    else cb(null, meta);
+    else cb(null, meta, key);
   }
 };
 
@@ -90,9 +90,7 @@ VC.get = function get(key, cb) {
 };
 
 function repair(changes, cb) {
-  var batch = (changes.discarded || []).map(function(discardRec) {
-    return { type: DEL, key: discardRec.key }
-  });
+  var batch = (changes.discarded || []).map(delRepairMap);
 
   if (batch.length)
     this._db.batch(batch, next);
@@ -104,6 +102,10 @@ function repair(changes, cb) {
   }
 }
 
+function delRepairMap(rec) {
+  return { type: DEL, key: rec.key };
+}
+
 
 /// createReadStream
 
@@ -113,6 +115,7 @@ var defaultReadStreamOptions = {
 }
 
 VC.createReadStream = function createReadStream(options) {
+  var self = this;
   var reply = new PassThrough({objectMode: true});
 
   var opts = extend({}, defaultReadStreamOptions);
@@ -127,7 +130,6 @@ VC.createReadStream = function createReadStream(options) {
   delete opts.keys;
   delete opts.values;
 
-  console.log('read stream opts:', opts);
   var s = this._db.createReadStream(opts);
 
   s.on('data', onData);
@@ -150,7 +152,7 @@ VC.createReadStream = function createReadStream(options) {
 
     if (set != currentSet) currentSet = set;
 
-    if (currentKey && key != currentKey) dispatch();
+    if (currentKey && key != currentKey) dispatch.call(this);
 
     if (key != currentKey) currentKey = key;
 
@@ -176,7 +178,7 @@ VC.createReadStream = function createReadStream(options) {
     if (currentKey && meta && value != undefined) {
       reads.push({key: currentKey, value: value, meta: meta});
     }
-    dispatch();
+    dispatch.call(self);
     reply.push();
   }
 

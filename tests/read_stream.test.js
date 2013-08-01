@@ -8,10 +8,30 @@ var MAX_DATA = 100;
 var path = __dirname + '/.testdbs/read_stream'
 var db = utils.setup(path, 'node1');
 
+var metas = {};
+
 test('puts several', function(t) {
-  for (var i = 1; i <= MAX_DATA; i ++) {
+  var i;
+  for (i = 1; i <= MAX_DATA; i ++) {
     var padded = pad(i);
     db.put('key' + padded, 'value' + padded, onPut);
+  }
+
+  var puts = 0;
+  function onPut(err, meta, key) {
+    if (err) throw err;
+    metas[key] = meta;
+    if (++ puts == MAX_DATA) t.end();
+  }
+});
+
+test('puts several again', function(t) {
+  var padded, key, meta;
+  for (var i = 1; i <= MAX_DATA; i ++) {
+    padded = pad(i);
+    key = 'key' + padded;
+    meta = metas[key];
+    db.put(key, 'value' + padded, meta, onPut);
   }
 
   var puts = 0;
@@ -19,7 +39,6 @@ test('puts several', function(t) {
     if (err) throw err;
     if (++ puts == MAX_DATA) t.end();
   }
-
 });
 
 test('gets a full read stream', function(t) {
@@ -34,7 +53,7 @@ test('gets a full read stream', function(t) {
       value: 'value' + padded,
       meta: {
         clock: {
-          node1: 1
+          node1: 2
         }
       }
     };
@@ -56,7 +75,7 @@ test('gets a partial read stream', function(t) {
       value: 'value' + padded,
       meta: {
         clock: {
-          node1: 1
+          node1: 2
         }
       }
     };
@@ -79,7 +98,7 @@ test('gets a partial read stream in reverse', function(t) {
       value: 'value' + padded,
       meta: {
         clock: {
-          node1: 1
+          node1: 2
         }
       }
     };
@@ -101,7 +120,7 @@ test('gets a partial read stream with a partial key', function(t) {
       value: 'value' + padded,
       meta: {
         clock: {
-          node1: 1
+          node1: 2
         }
       }
     };
@@ -136,7 +155,7 @@ test('gets only values', function(t) {
       value: 'value' + padded,
       meta: {
         clock: {
-          node1: 1
+          node1: 2
         }
       }
     };
