@@ -118,6 +118,33 @@ function delRepairMap(rec) {
 }
 
 
+/// del
+
+VC.del = function del(key, cb) {
+  var self = this;
+  var s = this._db.createReadStream({ start: key + SEPARATOR, end: key +  SEPARATOR_END});
+  s.on  ('data', onData);
+  s.once('end', onEnd);
+
+  var error;
+  var deleteKeys = [];
+
+  function onData(rec) {
+    deleteKeys.push(rec.key);
+  }
+
+  function onEnd() {
+    if (error) cb(error);
+    else self._db.batch(deleteKeys.map(keyToDelete), cb);
+  }
+
+};
+
+function keyToDelete(key) {
+  return { type: 'del', key: key };
+}
+
+
 /// createReadStream
 
 var defaultReadStreamOptions = {
@@ -205,6 +232,7 @@ VC.createReadStream = function createReadStream(options) {
 
   return reply;
 };
+
 
 /// close
 

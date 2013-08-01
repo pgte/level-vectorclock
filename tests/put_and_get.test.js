@@ -15,6 +15,7 @@ test('puts one', function(t) {
 
 test('gets one', function(t) {
   db.get('key1', function(err, recs) {
+    if (err) throw err;
     var expected = [{key: 'key1', value: 'value1', meta: { clock: { node1: 1}}}];
     t.deepEqual(recs, expected);
     t.end();
