@@ -124,7 +124,7 @@ VC.createReadStream = function createReadStream(options) {
     var key = extractKey(d.key);
     var set = extractSet(d.key, key);
 
-    if (currentSet && set != currentSet && meta && value != undefined) {
+    if (currentSet && set != currentSet && meta) {
       reads.push({key: currentKey, value: value, meta: meta});
       value = null;
       meta = null;
