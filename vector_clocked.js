@@ -89,8 +89,6 @@ VC.get = function get(key, cb) {
 };
 
 function repair(changes, cb) {
-  var batch = [];
-
   var batch = (changes.discarded || []).map(function(discardRec) {
     return { type: DEL, key: discardRec.key }
   });

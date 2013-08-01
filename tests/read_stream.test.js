@@ -44,6 +44,51 @@ test('gets a full read stream', function(t) {
   }
 });
 
+test('gets a partial read stream', function(t) {
+  var s = db.createReadStream({start: 'key020', end: 'key030'});
+  s.on('data', onData);
+
+  var datas = 20;
+  function onData(d) {
+    var padded = pad(datas);
+    var expected = {
+      key: 'key' + padded,
+      value: 'value' + padded,
+      meta: {
+        clock: {
+          node1: 1
+        }
+      }
+    };
+
+    t.deepEqual(d, [expected]);
+    if (++ datas == 30) t.end();
+  }
+
+});
+
+test('gets a partial read stream in reverse', function(t) {
+  var s = db.createReadStream({start: 'key030', end: 'key020', reverse: true});
+  s.on('data', onData);
+
+  var datas = 29;
+  function onData(d) {
+    var padded = pad(datas);
+    var expected = {
+      key: 'key' + padded,
+      value: 'value' + padded,
+      meta: {
+        clock: {
+          node1: 1
+        }
+      }
+    };
+
+    t.deepEqual(d, [expected]);
+    if (-- datas == 19) t.end();
+  }
+});
+
 test('closes', function(t) {
   db.close(t.end.bind(t));
 });
@@ -55,3 +100,5 @@ function pad(n) {
   if (n < 100) s = '0' + s;
   return s;
 }
+
+function xtest() {}
