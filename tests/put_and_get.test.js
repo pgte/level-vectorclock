@@ -76,7 +76,7 @@ test('solves descendants', function(t) {
   }
 });
 
-test('user read repair', function(t) {
+test('user merges', function(t) {
   db.put('key4', 'value6', onPut);
   db.put('key4', 'value7', onPut);
 
