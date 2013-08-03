@@ -76,7 +76,7 @@ test('deletes', function(t) {
 
 });
 
-test('no data is there', function(t) {
+test('no data is there after dels', function(t) {
   var rs = db.createReadStream();
 
   rs.on('data', onData);
@@ -97,14 +97,6 @@ test('no data is there', function(t) {
 test('closes', function(t) {
   db.close(t.end.bind(t));
 });
-
-function sort(a, b) {
-  if (a.key < b.key) return -1;
-  if (a.value < b.value) return -1;
-  return 1;
-}
-
-function xtest() {}
 
 function pad(n) {
   var s = n.toString();

@@ -176,5 +176,3 @@ function pad(n) {
   if (n < 100) s = '0' + s;
   return s;
 }
-
-function xtest() {}

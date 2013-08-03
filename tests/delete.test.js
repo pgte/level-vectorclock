@@ -40,9 +40,3 @@ test('value is no longer present', function(t) {
 test('closes', function(t) {
   db.close(t.end.bind(t));
 });
-
-function sort(a, b) {
-  if (a.key < b.key) return -1;
-  if (a.value < b.value) return -1;
-  return 1;
-}

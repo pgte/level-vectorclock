@@ -143,7 +143,7 @@ function delRepairMap(rec) {
 /// del
 
 VC.del = function del(key, cb) {
-  prepareDel(key, onDelPrepared.bind(this));
+  prepareDel.call(this, key, onDelPrepared.bind(this));
 
   function onDelPrepared(err, commands) {
     if (err) cb(err);
