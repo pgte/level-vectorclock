@@ -263,6 +263,13 @@ VC.createReadStream = function createReadStream(options) {
 };
 
 
+VC.createValueStream = function createValueStream(options) {
+  if (! options) options = {};
+  options.values = true;
+  options.keys = false;
+  return this.createReadStream(options);
+}
+
 /// createWriteStream
 
 VC.createWriteStream = function createWriteStream(options) {
