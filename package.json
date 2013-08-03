@@ -17,13 +17,14 @@
   },
   "dependencies": {
     "vectorclock": "~0.0.0",
-    "xxhash":      "~0.2.0"
+    "xxhash": "~0.2.0",
+    "async": "~0.2.9",
+    "level-writestream": "~0.1.0"
   },
   "devDependencies": {
-    "tap":    "*",
-    "level":  "*",
+    "tap": "*",
+    "level": "*",
     "rimraf": "*",
-    "mkdirp": "*",
-    "level":  "*"
+    "mkdirp": "*"
   }
 }

@@ -1,10 +1,13 @@
-var EventEmitter = require('events').EventEmitter;
-var inherits     = require('util').inherits;
-var extend       = require('util')._extend;
-var PassThrough  = require('stream').PassThrough;
-var vectorclock  = require('vectorclock');
-var hash         = require('xxhash').hash;
-var readRepair   = require('./read_repair');
+var EventEmitter  = require('events').EventEmitter;
+var inherits      = require('util').inherits;
+var extend        = require('util')._extend;
+var PassThrough   = require('stream').PassThrough;
+var Writable      = require('stream').Writable;
+var LWS           = require('level-writestream');
+var async         = require('async');
+var vectorclock   = require('vectorclock');
+var hash          = require('xxhash').hash;
+var readRepair    = require('./read_repair');
 
 var SEPARATOR =     '\0';
 var SEPARATOR_END = '\1';
@@ -17,8 +20,10 @@ function VectorClocked(db, node, options) {
   EventEmitter.call(this);
 
   if (! options) options = {};
-
   if (! node) throw new Error('need node argument');
+
+  LWS(db);
+
   this._db      = db;
   this._node    = node;
   this._seed    = options.seed || 0xcafebabe;
@@ -32,37 +37,54 @@ var VC = VectorClocked.prototype;
 /// put
 
 VC.put = function put(key, value, meta, cb) {
+  var self = this;
+
   if (arguments.length < 4) {
     cb = meta;
     meta = undefined;
   }
 
+  prepareWrite.call(this, key, value, meta, onValues);
+
+  function onValues(values, meta) {
+    self._db.batch(values, onBatch);
+
+    function onBatch(err) {
+      if (err) cb(err);
+      else cb(null, meta, key);
+    }
+
+  }
+
+};
+
+function prepareWrite(key, value, meta, cb) {
+
+  if (! meta) meta = { clock: {}};
+  if (! meta.clock) meta.clock = {};
+
   if (Array.isArray(meta)) {
     meta = meta.reduce(reduceMetas, {clock: {}});
   }
-  console.log('reduced metas:', meta);
-
-  if (! meta) meta = {};
-  if (! meta.clock) meta.clock = {};
 
   vectorclock.increment(meta, this._node);
 
   var subKey = calcSubKey(meta, this._seed);
 
-  this._db.batch([
-      { key: composeKeys(key, subKey, 'k'), value: value, type: PUT },
-      { key: composeKeys(key, subKey, 'm'), value: JSON.stringify(meta), type: PUT }
-    ], onBatch);
-
-  function onBatch(err) {
-    if (err) cb(err);
-    else cb(null, meta, key);
-  }
-};
+  cb([
+       {
+         key: composeKeys(key, subKey, 'k'),
+         value: value, type: PUT },
+       {
+         key: composeKeys(key, subKey, 'm'),
+         value: JSON.stringify(meta), type: PUT }
+     ], meta);
+}
 
 function reduceMetas(prev, curr) {
   return vectorclock.merge(prev, curr);
 }
+
 
 /// get
 
@@ -135,12 +157,12 @@ VC.del = function del(key, cb) {
 
   function onEnd() {
     if (error) cb(error);
-    else self._db.batch(deleteKeys.map(keyToDelete), cb);
+    else self._db.batch(deleteKeys.map(mapKeyToDelete), cb);
   }
 
 };
 
-function keyToDelete(key) {
+function mapKeyToDelete(key) {
   return { type: 'del', key: key };
 }
 
@@ -231,6 +253,32 @@ VC.createReadStream = function createReadStream(options) {
   }
 
   return reply;
+};
+
+
+/// createWriteStream
+
+VC.createWriteStream = function createWriteStream(options) {
+  var self = this;
+
+  var ws = this._db.createWriteStream(options);
+
+  var s = new Writable({objectMode: true});
+
+  s._write = write;
+  function write(o, _, cb) {
+
+    prepareWrite.call(self, o.key, o.value, o.meta, onValues);
+
+    function onValues(values, meta) {
+      async.each(values, ws.write.bind(ws), cb);
+    }
+  }
+
+  ws.on('error', s.emit.bind(s, 'error'));
+  s.once('finish', ws.end.bind(ws));
+
+  return s;
 };
 
 

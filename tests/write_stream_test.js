@@ -1,0 +1,71 @@
+var assert = require('assert');
+var test   = require('tap').test;
+var utils  = require('./utils');
+var LVC    = require('../');
+
+var path = __dirname + '/.testdbs/write_stream'
+var db = utils.setup(path, 'node1');
+
+test('writes', function(t) {
+  var ws = db.createWriteStream();
+
+  ws.once('finish', function() {
+    t.equal(pending, 0);
+    t.end();
+  });
+
+  var pending = 0;
+  for (var i = 0 ; i < 100; i++) {
+    pending ++;
+    var padded = pad(i);
+    var rec = { key: 'key' + padded, value: 'value' + i };
+    ws.write(rec, onWrite);
+  }
+
+  function onWrite(err) {
+    if (err) throw err;
+    pending --;
+  }
+
+  ws.end();
+});
+
+test('data is there after write', function(t) {
+  var rs = db.createReadStream();
+
+  rs.on('data', onData);
+  rs.once('end', onEnd);
+
+  var i = 0;
+  function onData(d) {
+    var padded = pad(i);
+    var expected = [{ key: 'key' + padded, value: 'value' + i }];
+    t.similar(d, expected);
+    t.deepEqual(d[0].meta, { clock: { node1: 1}});
+    i ++;
+  }
+
+  function onEnd() {
+    t.equal(i, 100);
+    t.end();
+  }
+});
+
+test('closes', function(t) {
+  db.close(t.end.bind(t));
+});
+
+function sort(a, b) {
+  if (a.key < b.key) return -1;
+  if (a.value < b.value) return -1;
+  return 1;
+}
+
+function xtest() {}
+
+function pad(n) {
+  var s = n.toString();
+  if (n < 10)  s = '0' + s;
+  if (n < 100) s = '0' + s;
+  return s;
+}
