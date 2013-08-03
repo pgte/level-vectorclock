@@ -1,7 +1,6 @@
 var assert = require('assert');
 var test   = require('tap').test;
 var utils  = require('./utils');
-var LVC    = require('../');
 
 var path = __dirname + '/.testdbs/putandget'
 var db = utils.setup(path, 'node1');

@@ -1,7 +1,6 @@
 var assert = require('assert');
 var test   = require('tap').test;
 var utils  = require('./utils');
-var LVC    = require('../');
 
 var MAX_DATA = 100;
 

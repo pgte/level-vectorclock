@@ -304,6 +304,22 @@ VC.close = function close(cb) {
 };
 
 
+/// isOpen
+
+VC.isOpen = function isOpen() {
+  return this._db.isOpen();
+}
+
+/// isClosed
+
+VC.isClosed = function isOpen() {
+  return this._db.isClosed();
+}
+
+
+
+/// Misc
+
 function calcSubKey(meta, seed) {
   // FIXME: get a decent random here
   return hash(new Buffer(JSON.stringify(meta) + Date.now().toString() + Math.random().toString()), seed).toString(32);
