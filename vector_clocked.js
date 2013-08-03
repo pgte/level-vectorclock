@@ -44,7 +44,7 @@ VC.put = function put(key, value, meta, cb) {
     meta = undefined;
   }
 
-  prepareWrite.call(this, key, value, meta, onValues);
+  preparePut.call(this, key, value, meta, onValues);
 
   function onValues(values, meta) {
     self._db.batch(values, onBatch);
@@ -58,7 +58,7 @@ VC.put = function put(key, value, meta, cb) {
 
 };
 
-function prepareWrite(key, value, meta, cb) {
+function preparePut(key, value, meta, cb) {
 
   if (! meta) meta = { clock: {}};
   if (! meta.clock) meta.clock = {};
@@ -143,7 +143,15 @@ function delRepairMap(rec) {
 /// del
 
 VC.del = function del(key, cb) {
-  var self = this;
+  prepareDel(key, onDelPrepared.bind(this));
+
+  function onDelPrepared(err, commands) {
+    if (err) cb(err);
+    else this._db.batch(commands, cb);
+  }
+};
+
+function prepareDel(key, cb) {
   var s = this._db.createReadStream({ start: key + SEPARATOR, end: key +  SEPARATOR_END});
   s.on  ('data', onData);
   s.once('end', onEnd);
@@ -157,10 +165,9 @@ VC.del = function del(key, cb) {
 
   function onEnd() {
     if (error) cb(error);
-    else self._db.batch(deleteKeys.map(mapKeyToDelete), cb);
+    else cb(null, deleteKeys.map(mapKeyToDelete));
   }
-
-};
+}
 
 function mapKeyToDelete(key) {
   return { type: 'del', key: key };
@@ -259,19 +266,27 @@ VC.createReadStream = function createReadStream(options) {
 /// createWriteStream
 
 VC.createWriteStream = function createWriteStream(options) {
-  var self = this;
-
   var ws = this._db.createWriteStream(options);
 
   var s = new Writable({objectMode: true});
 
-  s._write = write;
-  function write(o, _, cb) {
+  var del = options && options.type == DEL;
 
-    prepareWrite.call(self, o.key, o.value, o.meta, onValues);
+  s._write = (del ? delWrite : putWrite).bind(this);
 
-    function onValues(values, meta) {
-      async.each(values, ws.write.bind(ws), cb);
+  function putWrite(o, _, cb) {
+    preparePut.call(this, o.key, o.value, o.meta, onPutPrepared);
+
+    function onPutPrepared(commands, meta) {
+      async.each(commands, ws.write.bind(ws), cb);
+    }
+  }
+
+  function delWrite(o, _, cb) {
+    prepareDel.call(this, o.key, onDelPrepared);
+
+    function onDelPrepared(err, commands) {
+      async.each(commands, ws.write.bind(ws), cb);
     }
   }
 

@@ -51,6 +51,49 @@ test('data is there after write', function(t) {
   }
 });
 
+test('deletes', function(t) {
+  var ws = db.createWriteStream({type: 'del'});
+
+  ws.once('finish', function() {
+    t.equal(pending, 0);
+    t.end();
+  });
+
+  var pending = 0;
+  for (var i = 0 ; i < 100; i++) {
+    pending ++;
+    var padded = pad(i);
+    var rec = { key: 'key' + padded };
+    ws.write(rec, onWrite);
+  }
+
+  function onWrite(err) {
+    if (err) throw err;
+    pending --;
+  }
+
+  ws.end();
+
+});
+
+test('no data is there', function(t) {
+  var rs = db.createReadStream();
+
+  rs.on('data', onData);
+  rs.on('end', onEnd);
+
+  var i = 0;
+  function onData(d) {
+    i ++;
+  }
+
+  function onEnd() {
+    t.equal(i, 0);
+    t.end();
+  }
+
+})
+
 test('closes', function(t) {
   db.close(t.end.bind(t));
 });
