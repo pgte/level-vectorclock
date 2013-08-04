@@ -6,7 +6,6 @@ var Writable      = require('stream').Writable;
 var LWS           = require('level-writestream');
 var async         = require('async');
 var vectorclock   = require('vectorclock');
-var hash          = require('xxhash').hash;
 var readRepair    = require('./read_repair');
 
 var SEPARATOR =     '\0';
@@ -329,7 +328,7 @@ VC.isClosed = function isOpen() {
 
 function calcSubKey(meta, seed) {
   // FIXME: get a decent random here
-  return hash(new Buffer(JSON.stringify(meta) + Date.now().toString() + Math.random().toString()), seed).toString(32);
+  return Math.floor(Math.random() * 0x80000000).toString(32);
 }
 
 function composeKeys(keyA, prefix, keyB) {
