@@ -86,10 +86,14 @@ Without options, streams all the data:
 ```javascript
 var s = db.createReadStream();
 
-s.on('data', function(rec) {
-  console.log('key:', rec.key);
-  console.log('value:', rec.value);
-  console.log('meta:', rec.meta);
+s.on('data', function(recs) {
+
+  // each record on a data event has one or more sibilings
+  recs.forEach(function(rec) {
+    console.log('key:', rec.key);
+    console.log('value:', rec.value);
+    console.log('meta:', rec.meta);
+  });
 });
 ```
 
