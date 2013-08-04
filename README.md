@@ -29,7 +29,7 @@ var nodeId = 'node-44';
 var db = LVC(level('/path/to/my/db'), nodeId);
 ```
 
-### put(key, value[, meta], cb]);
+### put(key, value[, meta], cb);
 
 Without metadata (may create sibilings):
 
