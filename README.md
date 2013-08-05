@@ -113,11 +113,11 @@ var s = db.createReadStream(options);
 
 ### createValueStream(options)
 
-Alias for `createReadStream({values: true, keys: false});
+Alias for `createReadStream({values: true, keys: false})`.
 
-### createReadStream(options)
+### createKeyStream(options)
 
-Returns only the keys. Alias for `createReadStream({values: false, keys: true});
+Returns only the keys. Alias for `createReadStream({values: false, keys: true})`.
 
 
 ### createWriteStream(options)
